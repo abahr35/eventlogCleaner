@@ -34,19 +34,21 @@ def process_log(input_path, output_path, sort_by=None, file_format='txt'):
     if sort_by:
         results.sort(key=lambda x: x.get(sort_by, ''))
 
+    # Wire a new CSV file if selected
     if file_format == 'csv':
         with open(output_path, 'w', newline='') as outfile:
             writer = csv.writer(outfile)
             writer.writerow(["Time", "IP", "User", "Country"])
             for entry in results:
                 writer.writerow([entry['time'], entry['ip'], entry['user'], entry['country']])
-    else:  # txt
+    else:  # else Text
         with open(output_path, 'w') as outfile:
             for entry in results:
                 outfile.write(f"{entry['time']} | {entry['ip']} | {entry['user']} | {entry['country']}\n")
 
 
 if __name__ == '__main__':
+    # Parser helps recognize arguments passed
     parser = argparse.ArgumentParser(description='Process and clean SSL VPN log files.')
     parser.add_argument('input_file', nargs='?', default='eventlog.txt', help='Input log file (default: eventlog.txt)')
     parser.add_argument('output_file', nargs='?', help='Output file name (default uses current date)')
@@ -56,14 +58,13 @@ if __name__ == '__main__':
                         help='Output file format: txt or csv (default: txt)')
 
     args = parser.parse_args()
-    date_suffix = datetime.now().strftime("%m%d%Y")
+    date_suffix = datetime.now().strftime("%m%d%Y")  # add date for filename
 
-    # Set file extension based on format
+    # set file extension based on format
     extension = args.format
     default_filename = f"cleaned_log_{date_suffix}.{extension}"
 
-    # Use provided filename or auto-generate one
-    output_file = args.output_file or default_filename
+    output_file = args.output_file or default_filename  # use given filename or auto-generate one
 
     # If user-supplied output file doesn't match the format, correct it
     if not output_file.lower().endswith(f".{extension}"):
