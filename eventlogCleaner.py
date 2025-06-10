@@ -1,18 +1,20 @@
 import re
 import argparse
+import csv
 from datetime import datetime
+import os
 
 
 def extract_info(line):
     time = re.search(r'time="([^"]+)"', line)  # regex to find time
-    src = re.search(r'src=([\d.]+)', line)  # regex to find source IP
+    src = re.search(r'src=([\d.]+)', line)     # regex to find source IP
     user = re.search(r'user="([^"]+)"', line)  # regex to find user
-    country = re.search(r'geoCountryName="([^"]*)"', line)  # regex for the country
+    country = re.search(r'geoCountryName="([^"]*)"', line)  # regex to find country
 
-    if not (time and src and user):  # Catch if data isn't there
+    if not (time and src and user):
         return None
 
-    return {
+    return {  # return a dictionary so i can easily sort
         "time": time.group(1),
         "ip": src.group(1),
         "user": user.group(1),
@@ -20,7 +22,7 @@ def extract_info(line):
     }
 
 
-def process_log(input_path, output_path, sort_by=None):
+def process_log(input_path, output_path, sort_by=None, file_format='txt'):
     results = []
 
     with open(input_path, 'r') as infile:
@@ -32,26 +34,40 @@ def process_log(input_path, output_path, sort_by=None):
     if sort_by:
         results.sort(key=lambda x: x.get(sort_by, ''))
 
-    with open(output_path, 'w') as outfile:
-        for entry in results:
-            outfile.write(f"{entry['time']} | {entry['ip']} | {entry['user']} | {entry['country']}\n")
+    if file_format == 'csv':
+        with open(output_path, 'w', newline='') as outfile:
+            writer = csv.writer(outfile)
+            writer.writerow(["Time", "IP", "User", "Country"])
+            for entry in results:
+                writer.writerow([entry['time'], entry['ip'], entry['user'], entry['country']])
+    else:  # txt
+        with open(output_path, 'w') as outfile:
+            for entry in results:
+                outfile.write(f"{entry['time']} | {entry['ip']} | {entry['user']} | {entry['country']}\n")
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Process and clean SSL VPN log files.')
     parser.add_argument('input_file', nargs='?', default='eventlog.txt', help='Input log file (default: eventlog.txt)')
-    parser.add_argument('output_file', nargs='?', help='Output file name (default: cleaned_log_<MMDDYYYY>.txt)')
+    parser.add_argument('output_file', nargs='?', help='Output file name (default uses current date)')
     parser.add_argument('-s', '--sort', choices=['time', 'ip', 'country'],
                         help='Sort the output by this field: time, ip, or country')
+    parser.add_argument('-f', '--format', choices=['txt', 'csv'], default='txt',
+                        help='Output file format: txt or csv (default: txt)')
 
     args = parser.parse_args()
-
-    # Generate date suffix
     date_suffix = datetime.now().strftime("%m%d%Y")
 
-    # Use custom output file or build one with date
-    output_file = args.output_file or f"cleaned_log_{date_suffix}.txt"
+    # Set file extension based on format
+    extension = args.format
+    default_filename = f"cleaned_log_{date_suffix}.{extension}"
 
-    process_log(args.input_file, output_file, args.sort)
+    # Use provided filename or auto-generate one
+    output_file = args.output_file or default_filename
+
+    # If user-supplied output file doesn't match the format, correct it
+    if not output_file.lower().endswith(f".{extension}"):
+        output_file = os.path.splitext(output_file)[0] + f".{extension}"
+
+    process_log(args.input_file, output_file, args.sort, args.format)
     print(f"Done. Cleaned log saved to '{output_file}'")
-    input("Press Enter to close...")
