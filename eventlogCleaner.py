@@ -62,7 +62,7 @@ if __name__ == '__main__':
 
     # set file extension based on format
     extension = args.format
-    default_filename = f"cleaned_log_{date_suffix}.{extension}"
+    default_filename = f"parsedEventLog_{date_suffix}.{extension}"
 
     output_file = args.output_file or default_filename  # use given filename or auto-generate one
 
